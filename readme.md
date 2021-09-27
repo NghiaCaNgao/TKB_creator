@@ -1,17 +1,17 @@
-# Script tao tkb uet-vnu
+# Script Tao thời khóa biểu uet-vnu
 
-# Huong dan su dung
-## Cach1
-    -B1: tao ban sao cua script nay:
-    -B2: khoi chay
-## Cach2
-    -Tao 1 gg script app moi
-    -Them cac file tren theo thu tu
-    +config
-    +constants
-    +func
-    +fetch-info
-    +read-info
-    +moments
-    +controller
+# Hướng dẫn sử dụng
+## Cách 1
+    -B1: Tạo bản sao của script này về google drive của bạn:
+    -B2: Khởi chạy
+## Cách 2
+    -Tạo 1 file google app script mới
+    -Tạo các file theo thứ tự sau rồi copy nội dung
+    + config
+    + constants
+    + func
+    + fetch-info
+    + read-info
+    + moments
+    + controller
 ## Video huong dan cai dat va su dung
