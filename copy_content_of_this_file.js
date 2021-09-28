@@ -1,10 +1,266 @@
-//! moment.js
-//! version : 2.29.1
-//! authors : Tim Wood, Iskren Chernev, Moment.js contributors
-//! license : MIT
-//! momentjs.com
+// ------------------------ EDIT HERE----------------------
 
-;
+const start_from_next_week = false;
+const studentID = 000000;
+const termID = "032";
+
+//  -------------------------------------------------------
+
+// Constants_file_section
+const pattern = [{
+        start: [7, 0],
+        end: [7, 50],
+    },
+    {
+        start: [8, 0],
+        end: [8, 50],
+    },
+    {
+        start: [9, 0],
+        end: [9, 50],
+    },
+    {
+        start: [10, 0],
+        end: [10, 50],
+    },
+    {
+        start: [11, 0],
+        end: [11, 50],
+    },
+    {
+        start: [12, 0],
+        end: [12, 50],
+    },
+    {
+        start: [13, 0],
+        end: [13, 50],
+    },
+    {
+        start: [14, 0],
+        end: [14, 50],
+    },
+    {
+        start: [15, 0],
+        end: [15, 50],
+    },
+    {
+        start: [16, 0],
+        end: [16, 50],
+    },
+    {
+        start: [17, 0],
+        end: [17, 50],
+    },
+    {
+        start: [18, 0],
+        end: [18, 50],
+    },
+    {
+        start: [19, 0],
+        end: [19, 50],
+    },
+    {
+        start: [20, 0],
+        end: [20, 50],
+    },
+];
+const baseUnitDay = 86400000;
+const baseUnitHour = 3600000;
+const baseUnitMin = 60000;
+const dayTime = [0, 1, 2, 3, 4, 5, 6].map(item => item * baseUnitDay);
+const lessonTime = pattern.map(item => {
+    return {
+        start: item.start[0] * baseUnitHour + item.start[1] * baseUnitMin,
+        end: item.end[0] * baseUnitHour + item.end[1] * baseUnitMin
+    }
+});
+
+const getStartNextWeek = () => {
+    const now = new Date();
+    const date = now.getDate();
+    const day = (now.getDay() == 0) ? 7 : now.getDay();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const adding = (8 - day) * baseUnitDay;
+    const subtracting = (day - 1) * baseUnitDay;
+    const compensation = (start_from_next_week) ? adding : -subtracting;
+    const startToday = (new Date(year, month, date)).getTime();
+    return (new Date(startToday + compensation)).getTime();
+}
+
+const startNextWeek = getStartNextWeek();
+// End of___Constants_file_section
+
+// Fetch data section
+const base_url = "http://112.137.129.87/qldt/";
+const params = {
+    "SinhvienLmh[masvTitle]": studentID.toString(),
+    "SinhvienLmh[term_id]": termID,
+    "SinhvienLmh_page": "1",
+    "ajax": "sinhvien-lmh-grid"
+}
+
+function jsonToUrlencoded(obj) {
+    var str = [];
+    for (let key in obj)
+        str.push(encodeURIComponent(key) + "=" + encodeURIComponent(obj[key]));
+    return str.join("&");
+}
+
+function fetchInfo() {
+    const fullURL = base_url + "?" + jsonToUrlencoded(params);
+    const response = UrlFetchApp.fetch(fullURL);
+    const queryData = readDataUser(response.getContentText()).filter(item => (item));
+    return queryData;
+}
+// End of___Fetch data section
+
+// Read data after fetching section
+function readDataUser(data) {
+    const rows = [...data.matchAll(/<tr[^>]*?>[\s\S]*?<\/tr>/g)];
+    const output = rows.map((item, index) => {
+        if (index >= 2 && item[0]) {
+            const cols = [...item[0].matchAll(/<td[^>]*?>[\s\S]*?<\/td>/g)];
+            const rawData = cols.map((item) => {
+                if (item[0])
+                    return item[0].match(/>[\s\S]*?</)[0].slice(1, -1)
+                else return;
+            });
+            if (rawData.every(item => (item))) {
+                return {
+                    index: Number(rawData[0]),
+                    studentID: Number(rawData[1]),
+                    name: rawData[2],
+                    bird: (new Date(moment(rawData[3], "DD/MM/YYYY")._d)).getTime(),
+                    stringBird: rawData[3],
+                    class: rawData[4],
+                    subClassID: rawData[5],
+                    subClassName: rawData[6],
+                    group: rawData[7],
+                    credits: Number(rawData[8]),
+                    note: rawData[9],
+                    unknownID: rawData[10],
+                }
+            } else {
+                return undefined
+            }
+        }
+    });
+    return output;
+}
+// End of___Read data after fetching section
+
+// Read value from TKB sheet
+function readSheet() {
+    const spreadsheetId = '1m9lVGgrSA9W6BD88FehKIMBC9SppoDMP_KpHW_fPUaY';
+    const rangeName = 'TKB!A1:J592';
+    const values = Sheets.Spreadsheets.Values.get(spreadsheetId, rangeName).values;
+
+    if (!values) {
+        Logger.log('No data found.');
+        return undefined;
+    } else return values;
+}
+
+// Filter personal data
+function filterInDeep(resource, referrence) {
+    const result = referrence.filter(item => {
+        for (let i = 0; i < resource.length; i++) {
+            if (resource[i].subClassID == item[4] && (resource[i].group == item[9] || "CL" == item[9])) {
+                return true;
+            }
+        }
+    });
+    return result;
+}
+
+function filterDiff(data) {
+    const output = [];
+    let diff, sub1;
+    for (let i = 0; i < data.length; i++) {
+        diff = true;
+        sub1 = data[i].reduce((pre, cur) => pre + cur);
+        for (let j = 0; j < output.length; j++) {
+            const sub2 = output[j].reduce((pre, cur) => pre + cur);
+            if (sub1 == sub2) {
+                diff = false;
+                break;
+            }
+        }
+        if (diff) output.push(data[i]);
+    }
+    return output;
+}
+
+// ProcessData
+function process(data) {
+    const tmp = data.map(item => {
+        return JSON.stringify({
+            courseCode: item[0],
+            courseName: item[1],
+            credits: Number(item[2]),
+            // studentNumber: Number(item[3]),
+            courseID: item[4],
+            teachers: item[5].split("\n"),
+            day: isNaN(Number(item[6])) ? 8 : Number(item[6]),
+            lessons: item[7].split("-").map(item => Number(item)),
+            amphitheater: item[8],
+            group: item[9]
+        });
+    });
+
+    return [...new Set(tmp)].map(item => JSON.parse(item));
+}
+
+// Create calendar
+function createCalendar(data) {
+    // Assign colors
+    const courseIDColors = [...new Set(data.map(item => item.courseID))];
+    const colorSet = [
+        CalendarApp.EventColor.PALE_BLUE,
+        CalendarApp.EventColor.PALE_GREEN,
+        CalendarApp.EventColor.PALE_RED,
+        CalendarApp.EventColor.YELLOW,
+        CalendarApp.EventColor.ORANGE,
+        CalendarApp.EventColor.BLUE,
+        CalendarApp.EventColor.CYAN,
+        CalendarApp.EventColor.GRAY,
+        CalendarApp.EventColor.MAUVE,
+        CalendarApp.EventColor.RED,
+    ]
+    var colors = {};
+    courseIDColors.forEach((item, index) => {
+        colors[item] = colorSet[index];
+    });
+    const calendarName = "Thời khóa biểu lớp";
+
+    // Create calendar
+    const calendar = CalendarApp.createCalendar(calendarName);
+    // create events
+    data.forEach(item => {
+        for (let lesson = item.lessons[0]; lesson <= item.lessons[1]; lesson++) {
+            const options = {
+                title: item.courseName + " " + item.courseID,
+                start: new Date(startNextWeek + dayTime[item.day - 2] + lessonTime[lesson - 1].start),
+                end: new Date(startNextWeek + dayTime[item.day - 2] + lessonTime[lesson - 1].end),
+                repeatation: CalendarApp.newRecurrence().addWeeklyRule().times(18),
+                location: item.amphitheater
+            }
+            Logger.log("Creating event: ");
+            Logger.log(options);
+            // create event
+            calendar.createEventSeries(options.title, options.start, options.end, options.repeatation, {
+                location: options.location
+            }).setColor(colors[item.courseID]);
+            Utilities.sleep(3 * 100); // Tranh loi overload
+        }
+    });
+
+    Logger.log("Created: " + data.length + " events in " + calendarName.toLocaleUpperCase());
+    Logger.log("DONE");
+}
+
+// -------------------------------Moment.js---------------------------------------------
 (function(global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
         typeof define === 'function' && define.amd ? define(factory) :
@@ -5664,4 +5920,24 @@
     return hooks;
 
 })));
-1
+// End of __ Moment.js
+
+// Main function
+function myFunction() {
+    Logger.log("--------------------------------------");
+    Logger.log("Fetching data...")
+    const data = fetchInfo();
+    Logger.log("Student name: " + data[0].name);
+    Logger.log("Student ID: " + data[0].studentID);
+    Logger.log("Class: " + data[0].class);
+    Logger.log("--------------------------------------");
+    Utilities.sleep(1 * 1000);
+    Logger.log("Reading data...")
+    const result = readSheet();
+    if (result) {
+        Logger.log("Processing data...");
+        const output = filterInDeep(data, result);
+        const readyData = process(output);
+        createCalendar(readyData);
+    }
+}
