@@ -163,8 +163,8 @@ function readSheet() {
 }
 
 // Filter personal data
-function filterInDeep(resource, referrence) {
-    const result = referrence.filter(item => {
+function filterInDeep(resource, reference) {
+    const result = reference.filter(item => {
         for (let i = 0; i < resource.length; i++) {
             if (resource[i].subClassID == item[4] && (resource[i].group == item[9] || "CL" == item[9])) {
                 return true;
@@ -172,24 +172,6 @@ function filterInDeep(resource, referrence) {
         }
     });
     return result;
-}
-
-function filterDiff(data) {
-    const output = [];
-    let diff, sub1;
-    for (let i = 0; i < data.length; i++) {
-        diff = true;
-        sub1 = data[i].reduce((pre, cur) => pre + cur);
-        for (let j = 0; j < output.length; j++) {
-            const sub2 = output[j].reduce((pre, cur) => pre + cur);
-            if (sub1 == sub2) {
-                diff = false;
-                break;
-            }
-        }
-        if (diff) output.push(data[i]);
-    }
-    return output;
 }
 
 // ProcessData
